@@ -1,0 +1,48 @@
+name: Weekly Google SecOps health
+
+on:
+  workflow_dispatch:
+    inputs:
+      simulate_drift:
+        description: "Send wrong request params (demo red run)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC — optional for the story
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run SecOps health check
+        id: check
+        env:
+          SECOPS_BASE_URL: ${{ secrets.SECOPS_BASE_URL }}
+          SECOPS_CREDENTIALS_JSON: ${{ secrets.SECOPS_CREDENTIALS_JSON }}
+          SIMULATE_DRIFT: ${{ inputs.simulate_drift || 'false' }}
+        run: python tests/test_secops_health.py
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "No SLACK_WEBHOOK_URL secret; skipping Slack notify"
+            exit 0
+          fi
+          curl -sS -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \":x: *Weekly Google SecOps health failed*\\nLogForge mock check caught a request-contract mismatch.\\nRepo: ${{ github.repository }}\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+            }"
