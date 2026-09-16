@@ -104,7 +104,11 @@ def main() -> int:
     )
     url = f"{base}{path}?{urllib.parse.urlencode(query)}"
 
+    expected_params = ["timeRange.start_time", "timeRange.end_time", "maxNumAlertsToReturn"]
+    sent_params = list(query.keys())
+
     print("Fetch alerts…")
+    print(f"Request params sent: {sent_params}")
     status, alerts_body = http_json("GET", url, token=token)
     print(f"HTTP {status}: {json.dumps(alerts_body)[:500]}")
 
@@ -116,11 +120,28 @@ def main() -> int:
         return 1
 
     if status != 200:
-        print(
-            "FAIL: expected HTTP 200 from LogForge mock. "
-            "Weekly check caught contract drift.",
-            file=sys.stderr,
-        )
+        print("", file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        print("ASSERTION FAILED: Google SecOps weekly health check", file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        print("Scenario : API request-contract drift", file=sys.stderr)
+        print("Endpoint : legacySearchRulesAlerts", file=sys.stderr)
+        print(f"Expected : HTTP 200 with params {expected_params}", file=sys.stderr)
+        print(f"Sent     : params {sent_params}", file=sys.stderr)
+        print(f"Got      : HTTP {status}  {json.dumps(alerts_body)}", file=sys.stderr)
+        if simulate_drift:
+            print("", file=sys.stderr)
+            print("Diff:", file=sys.stderr)
+            print("  - timeRange.start_time", file=sys.stderr)
+            print("  - timeRange.end_time", file=sys.stderr)
+            print("  + timeRange.start", file=sys.stderr)
+            print("  + timeRange.end", file=sys.stderr)
+            print("", file=sys.stderr)
+            print(
+                "Caught by weekly LogForge mock check — connector still uses old field names.",
+                file=sys.stderr,
+            )
+        print("=" * 60, file=sys.stderr)
         return 1
 
     print("PASS: Google SecOps weekly health check succeeded against LogForge.")
