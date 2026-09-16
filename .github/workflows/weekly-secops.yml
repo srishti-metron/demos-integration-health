@@ -24,24 +24,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install deps
-        run: pip install -r requirements.txt
-
       - name: Run SecOps health check
-        id: check
         env:
-          SECOPS_BASE_URL: ${{ secrets.SECOPS_BASE_URL }}
-          SECOPS_PROJECT: ${{ secrets.SECOPS_PROJECT }}
-          SECOPS_LOCATION: ${{ secrets.SECOPS_LOCATION }}
-          SECOPS_INSTANCE: ${{ secrets.SECOPS_INSTANCE }}
-          SECOPS_SA_TYPE: ${{ secrets.SECOPS_SA_TYPE }}
-          SECOPS_SA_PROJECT_ID: ${{ secrets.SECOPS_SA_PROJECT_ID }}
-          SECOPS_SA_PRIVATE_KEY_ID: ${{ secrets.SECOPS_SA_PRIVATE_KEY_ID }}
-          SECOPS_SA_PRIVATE_KEY: ${{ secrets.SECOPS_SA_PRIVATE_KEY }}
-          SECOPS_SA_CLIENT_EMAIL: ${{ secrets.SECOPS_SA_CLIENT_EMAIL }}
-          SECOPS_SA_CLIENT_ID: ${{ secrets.SECOPS_SA_CLIENT_ID }}
-          SECOPS_CREDENTIALS_B64: ${{ secrets.SECOPS_CREDENTIALS_B64 }}
-          SECOPS_CREDENTIALS_JSON: ${{ secrets.SECOPS_CREDENTIALS_JSON }}
           SIMULATE_DRIFT: ${{ inputs.simulate_drift || 'false' }}
         run: python tests/test_secops_health.py
 
