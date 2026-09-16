@@ -137,6 +137,21 @@ def unwrap_credentials(blob: dict) -> dict:
     return creds
 
 
+def make_assertion(credentials: dict, base: str) -> str:
+    """Sign SA JWT locally so we never POST private_key (staging WAF blocks that)."""
+    import jwt  # PyJWT
+
+    now = int(datetime.now(timezone.utc).timestamp())
+    token_uri = credentials.get("token_uri") or f"{base}/token"
+    payload = {
+        "iss": credentials["client_email"],
+        "aud": token_uri,
+        "iat": now,
+        "exp": now + 3600,
+    }
+    return jwt.encode(payload, credentials["private_key"], algorithm="RS256")
+
+
 def main() -> int:
     base = env("SECOPS_BASE_URL").rstrip("/")
     simulate_drift = os.environ.get("SIMULATE_DRIFT", "false").lower() == "true"
@@ -160,26 +175,11 @@ def main() -> int:
     print(f"Using base URL: {base}")
     print(f"Using project={project} location={location} instance={instance}")
 
-    print("1) Request assertion from mock auth…")
-    status, auth_body = http_json(
-        "POST",
-        f"{base}/o/oauth2/auth",
-        {
-            "type": credentials["type"],
-            "project_id": credentials["project_id"],
-            "private_key_id": credentials["private_key_id"],
-            "private_key": credentials["private_key"],
-            "client_email": credentials["client_email"],
-            "client_id": credentials["client_id"],
-        },
-    )
-    if status != 200 or "assertion" not in auth_body:
-        print(f"Auth failed ({status}): {auth_body}", file=sys.stderr)
-        if status == 0:
-            print(
-                "HINT: GitHub runners cannot reach *.localhost. Use staging.",
-                file=sys.stderr,
-            )
+    print("1) Sign assertion locally…")
+    try:
+        assertion = make_assertion(credentials, base)
+    except Exception as e:
+        print(f"Failed to sign assertion: {e}", file=sys.stderr)
         return 1
 
     print("2) Exchange assertion for access token…")
@@ -187,14 +187,17 @@ def main() -> int:
         "POST",
         f"{base}/token",
         {
-            "assertion": auth_body["assertion"],
-            "grant_type": auth_body.get(
-                "grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"
-            ),
+            "assertion": assertion,
+            "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
         },
     )
     if status != 200 or "access_token" not in token_body:
         print(f"Token failed ({status}): {token_body}", file=sys.stderr)
+        if status == 0:
+            print(
+                "HINT: GitHub runners cannot reach *.localhost. Use staging.",
+                file=sys.stderr,
+            )
         return 1
     token = token_body["access_token"]
 
