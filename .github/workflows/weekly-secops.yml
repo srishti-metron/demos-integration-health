@@ -28,6 +28,7 @@ jobs:
         id: check
         env:
           SECOPS_BASE_URL: ${{ secrets.SECOPS_BASE_URL }}
+          SECOPS_CREDENTIALS_B64: ${{ secrets.SECOPS_CREDENTIALS_B64 }}
           SECOPS_CREDENTIALS_JSON: ${{ secrets.SECOPS_CREDENTIALS_JSON }}
           SIMULATE_DRIFT: ${{ inputs.simulate_drift || 'false' }}
         run: python tests/test_secops_health.py

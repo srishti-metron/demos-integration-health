@@ -2,13 +2,15 @@
 """Weekly Google SecOps health check against a LogForge mock.
 
 Env:
-  SECOPS_BASE_URL          e.g. https://google-secops-<sub>.staging.logforge.net
-  SECOPS_CREDENTIALS_JSON  full JSON from LogForge (credentials + project/location/instance)
-  SIMULATE_DRIFT           if "true", send wrong query param (demo red run)
+  SECOPS_BASE_URL            e.g. https://google-secops-<sub>.staging.logforge.net
+  SECOPS_CREDENTIALS_B64     preferred: base64 of full credentials JSON (survives GitHub secret paste)
+  SECOPS_CREDENTIALS_JSON    alternative: raw JSON (often broken by \\n in private_key)
+  SIMULATE_DRIFT             if "true", send wrong query param (demo red run)
 """
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -56,14 +58,29 @@ def http_json(method: str, url: str, body: dict | None = None, token: str | None
         return 0, {"error": str(e.reason)}
 
 
+def load_cred_raw() -> str:
+    b64 = os.environ.get("SECOPS_CREDENTIALS_B64", "").strip()
+    if b64:
+        try:
+            return base64.b64decode(b64).decode("utf-8")
+        except Exception as e:
+            print(f"SECOPS_CREDENTIALS_B64 is not valid base64: {e}", file=sys.stderr)
+            sys.exit(2)
+    return env("SECOPS_CREDENTIALS_JSON")
+
+
 def parse_cred_blob(raw: str) -> dict:
     try:
         blob = json.loads(raw)
     except json.JSONDecodeError as e:
-        print(f"SECOPS_CREDENTIALS_JSON is not valid JSON: {e}", file=sys.stderr)
+        print(
+            f"Credentials JSON is not valid: {e}. "
+            "Prefer secret SECOPS_CREDENTIALS_B64 (base64 of the JSON one-liner).",
+            file=sys.stderr,
+        )
         sys.exit(2)
     if not isinstance(blob, dict):
-        print("SECOPS_CREDENTIALS_JSON must be a JSON object", file=sys.stderr)
+        print("Credentials must be a JSON object", file=sys.stderr)
         sys.exit(2)
     return blob
 
@@ -106,7 +123,7 @@ def unwrap_credentials(blob: dict) -> dict:
 
 def main() -> int:
     base = env("SECOPS_BASE_URL").rstrip("/")
-    cred_blob = parse_cred_blob(env("SECOPS_CREDENTIALS_JSON"))
+    cred_blob = parse_cred_blob(load_cred_raw())
     simulate_drift = os.environ.get("SIMULATE_DRIFT", "false").lower() == "true"
 
     credentials = unwrap_credentials(cred_blob)
