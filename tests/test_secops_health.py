@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """Weekly Google SecOps health check against a LogForge mock.
 
-Env:
-  SECOPS_BASE_URL            e.g. https://google-secops-<sub>.staging.logforge.net
-  SECOPS_CREDENTIALS_B64     preferred: base64 of full credentials JSON (survives GitHub secret paste)
-  SECOPS_CREDENTIALS_JSON    alternative: raw JSON (often broken by \\n in private_key)
-  SIMULATE_DRIFT             if "true", send wrong query param (demo red run)
+Preferred env (no fragile JSON paste):
+  SECOPS_BASE_URL
+  SECOPS_PROJECT / SECOPS_LOCATION / SECOPS_INSTANCE
+  SECOPS_SA_TYPE, SECOPS_SA_PROJECT_ID, SECOPS_SA_PRIVATE_KEY_ID,
+  SECOPS_SA_PRIVATE_KEY (multiline PEM OK), SECOPS_SA_CLIENT_EMAIL, SECOPS_SA_CLIENT_ID
+
+Legacy (optional):
+  SECOPS_CREDENTIALS_B64 or SECOPS_CREDENTIALS_JSON
+
+  SIMULATE_DRIFT=true → demo red run (wrong query params)
 """
 
 from __future__ import annotations
@@ -29,9 +34,9 @@ REQUIRED_CRED_KEYS = (
 )
 
 
-def env(name: str) -> str:
+def env(name: str, required: bool = True) -> str:
     value = os.environ.get(name, "").strip()
-    if not value:
+    if required and not value:
         print(f"Missing required env: {name}", file=sys.stderr)
         sys.exit(2)
     return value
@@ -58,9 +63,29 @@ def http_json(method: str, url: str, body: dict | None = None, token: str | None
         return 0, {"error": str(e.reason)}
 
 
+def credentials_from_flat_env() -> tuple[dict, str, str, str] | None:
+    if not os.environ.get("SECOPS_SA_PRIVATE_KEY", "").strip():
+        return None
+    creds = {
+        "type": os.environ.get("SECOPS_SA_TYPE", "").strip() or "service_account",
+        "project_id": env("SECOPS_SA_PROJECT_ID"),
+        "private_key_id": env("SECOPS_SA_PRIVATE_KEY_ID"),
+        "private_key": os.environ["SECOPS_SA_PRIVATE_KEY"].replace("\\n", "\n"),
+        "client_email": env("SECOPS_SA_CLIENT_EMAIL"),
+        "client_id": env("SECOPS_SA_CLIENT_ID"),
+    }
+    return (
+        creds,
+        env("SECOPS_PROJECT"),
+        env("SECOPS_LOCATION"),
+        env("SECOPS_INSTANCE"),
+    )
+
+
 def load_cred_raw() -> str:
     b64 = os.environ.get("SECOPS_CREDENTIALS_B64", "").strip()
     if b64:
+        b64 += "=" * (-len(b64) % 4)
         try:
             return base64.b64decode(b64).decode("utf-8")
         except Exception as e:
@@ -73,11 +98,7 @@ def parse_cred_blob(raw: str) -> dict:
     try:
         blob = json.loads(raw)
     except json.JSONDecodeError as e:
-        print(
-            f"Credentials JSON is not valid: {e}. "
-            "Prefer secret SECOPS_CREDENTIALS_B64 (base64 of the JSON one-liner).",
-            file=sys.stderr,
-        )
+        print(f"Credentials JSON is not valid: {e}", file=sys.stderr)
         sys.exit(2)
     if not isinstance(blob, dict):
         print("Credentials must be a JSON object", file=sys.stderr)
@@ -86,7 +107,6 @@ def parse_cred_blob(raw: str) -> dict:
 
 
 def unwrap_credentials(blob: dict) -> dict:
-    """Accept flat SA JSON, {credentials: {...}}, or credentials as a JSON string."""
     creds = blob.get("credentials", blob)
     if isinstance(creds, str):
         try:
@@ -94,7 +114,6 @@ def unwrap_credentials(blob: dict) -> dict:
         except json.JSONDecodeError as e:
             print(f"credentials field is a string but not valid JSON: {e}", file=sys.stderr)
             sys.exit(2)
-    # unwrap accidental double nesting
     while (
         isinstance(creds, dict)
         and "type" not in creds
@@ -111,10 +130,7 @@ def unwrap_credentials(blob: dict) -> dict:
     if missing:
         safe_keys = sorted(k for k in creds.keys() if k != "private_key")
         print(
-            "Service-account credentials missing keys: "
-            f"{missing}. Found keys: {safe_keys}. "
-            "Secret must look like "
-            '{"credentials":{"type":"service_account",...},"project":"...","location":"...","instance":"..."}',
+            f"Service-account credentials missing keys: {missing}. Found: {safe_keys}",
             file=sys.stderr,
         )
         sys.exit(2)
@@ -123,20 +139,23 @@ def unwrap_credentials(blob: dict) -> dict:
 
 def main() -> int:
     base = env("SECOPS_BASE_URL").rstrip("/")
-    cred_blob = parse_cred_blob(load_cred_raw())
     simulate_drift = os.environ.get("SIMULATE_DRIFT", "false").lower() == "true"
 
-    credentials = unwrap_credentials(cred_blob)
-    project = cred_blob.get("project")
-    location = cred_blob.get("location")
-    instance = cred_blob.get("instance")
-    if not all([project, location, instance]):
-        print(
-            "SECOPS_CREDENTIALS_JSON must include top-level project, location, instance. "
-            f"Found top-level keys: {sorted(cred_blob.keys())}",
-            file=sys.stderr,
-        )
-        return 2
+    flat = credentials_from_flat_env()
+    if flat:
+        credentials, project, location, instance = flat
+    else:
+        cred_blob = parse_cred_blob(load_cred_raw())
+        credentials = unwrap_credentials(cred_blob)
+        project = cred_blob.get("project")
+        location = cred_blob.get("location")
+        instance = cred_blob.get("instance")
+        if not all([project, location, instance]):
+            print(
+                "Need project, location, instance (flat SECOPS_* envs or JSON blob).",
+                file=sys.stderr,
+            )
+            return 2
 
     print(f"Using base URL: {base}")
     print(f"Using project={project} location={location} instance={instance}")
@@ -158,8 +177,7 @@ def main() -> int:
         print(f"Auth failed ({status}): {auth_body}", file=sys.stderr)
         if status == 0:
             print(
-                "HINT: GitHub runners cannot reach *.localhost. "
-                "Use a staging LogForge mock URL for Actions.",
+                "HINT: GitHub runners cannot reach *.localhost. Use staging.",
                 file=sys.stderr,
             )
         return 1
@@ -184,10 +202,7 @@ def main() -> int:
     start = end - timedelta(days=7)
 
     if simulate_drift:
-        print(
-            "SIMULATE_DRIFT=true → WRONG params "
-            "timeRange.start / timeRange.end (expected: timeRange.start_time)"
-        )
+        print("SIMULATE_DRIFT=true → WRONG params timeRange.start / timeRange.end")
         query = {
             "timeRange.start": start.isoformat().replace("+00:00", "Z"),
             "timeRange.end": end.isoformat().replace("+00:00", "Z"),
