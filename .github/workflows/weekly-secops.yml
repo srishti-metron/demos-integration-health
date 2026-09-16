@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       simulate_drift:
-        description: "Send wrong request params (demo red run)"
+        description: "DEMO ONLY — wrong request params (red run for video)"
         required: false
         default: "false"
         type: choice
@@ -24,10 +24,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run SecOps health check
+      - name: Run Google SecOps connector health
         env:
+          DEMO_SIMULATE_DRIFT: ${{ inputs.simulate_drift || 'false' }}
           SIMULATE_DRIFT: ${{ inputs.simulate_drift || 'false' }}
-        run: python tests/test_secops_health.py
+        run: python tests/connectors/test_google_secops.py
 
       - name: Notify Slack on failure
         if: failure()
