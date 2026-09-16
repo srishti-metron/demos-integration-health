@@ -17,6 +17,15 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
+REQUIRED_CRED_KEYS = (
+    "type",
+    "project_id",
+    "private_key_id",
+    "private_key",
+    "client_email",
+    "client_id",
+)
+
 
 def env(name: str) -> str:
     value = os.environ.get(name, "").strip()
@@ -43,24 +52,77 @@ def http_json(method: str, url: str, body: dict | None = None, token: str | None
         except json.JSONDecodeError:
             payload = {"raw": raw}
         return e.code, payload
+    except urllib.error.URLError as e:
+        return 0, {"error": str(e.reason)}
+
+
+def parse_cred_blob(raw: str) -> dict:
+    try:
+        blob = json.loads(raw)
+    except json.JSONDecodeError as e:
+        print(f"SECOPS_CREDENTIALS_JSON is not valid JSON: {e}", file=sys.stderr)
+        sys.exit(2)
+    if not isinstance(blob, dict):
+        print("SECOPS_CREDENTIALS_JSON must be a JSON object", file=sys.stderr)
+        sys.exit(2)
+    return blob
+
+
+def unwrap_credentials(blob: dict) -> dict:
+    """Accept flat SA JSON, {credentials: {...}}, or credentials as a JSON string."""
+    creds = blob.get("credentials", blob)
+    if isinstance(creds, str):
+        try:
+            creds = json.loads(creds)
+        except json.JSONDecodeError as e:
+            print(f"credentials field is a string but not valid JSON: {e}", file=sys.stderr)
+            sys.exit(2)
+    # unwrap accidental double nesting
+    while (
+        isinstance(creds, dict)
+        and "type" not in creds
+        and isinstance(creds.get("credentials"), (dict, str))
+    ):
+        inner = creds["credentials"]
+        if isinstance(inner, str):
+            inner = json.loads(inner)
+        creds = inner
+    if not isinstance(creds, dict):
+        print(f"credentials must be an object, got {type(creds).__name__}", file=sys.stderr)
+        sys.exit(2)
+    missing = [k for k in REQUIRED_CRED_KEYS if k not in creds]
+    if missing:
+        safe_keys = sorted(k for k in creds.keys() if k != "private_key")
+        print(
+            "Service-account credentials missing keys: "
+            f"{missing}. Found keys: {safe_keys}. "
+            "Secret must look like "
+            '{"credentials":{"type":"service_account",...},"project":"...","location":"...","instance":"..."}',
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    return creds
 
 
 def main() -> int:
     base = env("SECOPS_BASE_URL").rstrip("/")
-    cred_blob = json.loads(env("SECOPS_CREDENTIALS_JSON"))
+    cred_blob = parse_cred_blob(env("SECOPS_CREDENTIALS_JSON"))
     simulate_drift = os.environ.get("SIMULATE_DRIFT", "false").lower() == "true"
 
-    credentials = cred_blob.get("credentials") or cred_blob
+    credentials = unwrap_credentials(cred_blob)
     project = cred_blob.get("project")
     location = cred_blob.get("location")
     instance = cred_blob.get("instance")
     if not all([project, location, instance]):
         print(
-            "SECOPS_CREDENTIALS_JSON must include project, location, instance "
-            "(copy the full credential JSON from LogForge mock details).",
+            "SECOPS_CREDENTIALS_JSON must include top-level project, location, instance. "
+            f"Found top-level keys: {sorted(cred_blob.keys())}",
             file=sys.stderr,
         )
         return 2
+
+    print(f"Using base URL: {base}")
+    print(f"Using project={project} location={location} instance={instance}")
 
     print("1) Request assertion from mock auth…")
     status, auth_body = http_json(
@@ -77,6 +139,12 @@ def main() -> int:
     )
     if status != 200 or "assertion" not in auth_body:
         print(f"Auth failed ({status}): {auth_body}", file=sys.stderr)
+        if status == 0:
+            print(
+                "HINT: GitHub runners cannot reach *.localhost. "
+                "Use a staging LogForge mock URL for Actions.",
+                file=sys.stderr,
+            )
         return 1
 
     print("2) Exchange assertion for access token…")
