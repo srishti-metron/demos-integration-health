@@ -1,7 +1,7 @@
 {
-  "base_url": "https://google-secops-0clfviv6bw.staging.logforge.net",
-  "bearer_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnN0YWxsZWRQbHVnaW5JZCI6MjI5LCJzdWJEb21haW4iOiJnb29nbGUtc2Vjb3BzLTBjbGZ2aXY2YnciLCJpYXQiOjE3ODk5ODMyNjUsImV4cCI6MTc4OTk4Njg2NX0.3I2imUQ3ZikPcr30J9BrBAvWX5yv51-juqORy-vVlkk",
-  "project": "port-indexing",
-  "location": "europe-west3",
-  "instance": "753a2ec2-d67d-476e-a4d9-413535feb903"
+  "base_url": "https://google-secops-9ojiqzh5tv.staging.logforge.net",
+  "bearer_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnN0YWxsZWRQbHVnaW5JZCI6MjQxLCJzdWJEb21haW4iOiJnb29nbGUtc2Vjb3BzLTlvamlxemg1dHYiLCJpYXQiOjE3ODk5ODgwNDcsImV4cCI6MTc4OTk5MTY0N30.ggQ8-Z0hreNFW9fbtEC_-ZHIJoEedOshHpCRD0DYy2Q",
+  "project": "sensor-parsing",
+  "location": "asia-southeast1",
+  "instance": "c6ad8954-0665-4196-bc84-82295ab186a4"
 }
