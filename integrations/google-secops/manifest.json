@@ -1,7 +1,0 @@
-{
-  "id": "google-secops",
-  "name": "Google SecOps",
-  "platformId": null,
-  "status": "placeholder",
-  "notes": "Fill platformId when wiring LogForge create API."
-}

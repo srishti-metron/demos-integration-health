@@ -1,0 +1,20 @@
+{
+  "id": "google-secops",
+  "name": "Google SecOps",
+  "platformId": null,
+  "status": "active-demo",
+  "notes": "Fill platformId when wiring LogForge create API.",
+  "health": {
+    "endpoint": "/v1alpha/projects/{project}/locations/{location}/instances/{instance}/legacy:legacySearchRulesAlerts",
+    "expectedParams": [
+      "timeRange.start_time",
+      "timeRange.end_time",
+      "maxNumAlertsToReturn"
+    ],
+    "driftDemoParams": [
+      "timeRange.start",
+      "timeRange.end",
+      "maxNumAlertsToReturn"
+    ]
+  }
+}

@@ -97,7 +97,7 @@ class LogForgeClient:
 
 
 def from_env_or_demo_config(demo_config_path: str) -> MockEnv:
-    """Prefer committed demo_config.json for marketing demos; else create via API."""
+    """Prefer integrations/<vendor>/demo_env.json for demos; else create via API."""
     if os.path.exists(demo_config_path):
         cfg = json.loads(open(demo_config_path).read())
         return MockEnv(
@@ -108,7 +108,7 @@ def from_env_or_demo_config(demo_config_path: str) -> MockEnv:
                 "project": cfg.get("project"),
                 "location": cfg.get("location"),
                 "instance": cfg.get("instance"),
-                "source": "demo_config.json",
+                "source": "demo_env.json",
             },
         )
 

@@ -1,4 +1,4 @@
-"""Shared assertion helpers for connector health checks."""
+"""Shared assertion helpers (no vendor-specific data)."""
 
 from __future__ import annotations
 
@@ -21,10 +21,17 @@ def expect_status(status: int, expected: int, *, context: str, body=None) -> Non
     raise AssertionError(f"{context}: expected HTTP {expected}, got {status}")
 
 
-def print_drift_diff(*, expected_params: list[str], sent_params: list[str], status: int, body) -> None:
+def print_param_drift(
+    *,
+    title: str,
+    expected_params: list[str],
+    sent_params: list[str],
+    status: int,
+    body,
+) -> None:
     print("", file=sys.stderr)
     print("=" * 60, file=sys.stderr)
-    print("ASSERTION FAILED: Google SecOps weekly health check", file=sys.stderr)
+    print(f"ASSERTION FAILED: {title}", file=sys.stderr)
     print("=" * 60, file=sys.stderr)
     print("Scenario : API request-contract drift", file=sys.stderr)
     print(f"Expected : HTTP 200 with params {expected_params}", file=sys.stderr)
@@ -33,10 +40,10 @@ def print_drift_diff(*, expected_params: list[str], sent_params: list[str], stat
     print("", file=sys.stderr)
     print("Diff:", file=sys.stderr)
     for p in expected_params:
-        if p.startswith("timeRange.") and p not in sent_params:
+        if p not in sent_params:
             print(f"  - {p}", file=sys.stderr)
     for p in sent_params:
-        if p.startswith("timeRange.") and p not in expected_params:
+        if p not in expected_params:
             print(f"  + {p}", file=sys.stderr)
     print("", file=sys.stderr)
     print(

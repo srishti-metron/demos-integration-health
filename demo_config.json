@@ -1,7 +1,0 @@
-{
-  "base_url": "https://google-secops-0clfviv6bw.staging.logforge.net",
-  "bearer_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnN0YWxsZWRQbHVnaW5JZCI6MjI5LCJzdWJEb21haW4iOiJnb29nbGUtc2Vjb3BzLTBjbGZ2aXY2YnciLCJpYXQiOjE3ODk1NDQyODEsImV4cCI6MTc4OTU0Nzg4MX0.yVJla18MDxv3-I2DZobXJa0a4DEJ_DooEHUyGho3Rpc",
-  "project": "port-indexing",
-  "location": "europe-west3",
-  "instance": "753a2ec2-d67d-476e-a4d9-413535feb903"
-}
