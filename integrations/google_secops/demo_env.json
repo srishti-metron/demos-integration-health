@@ -1,6 +1,6 @@
 {
   "base_url": "https://google-secops-9ojiqzh5tv.staging.logforge.net",
-  "bearer_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnN0YWxsZWRQbHVnaW5JZCI6MjQxLCJzdWJEb21haW4iOiJnb29nbGUtc2Vjb3BzLTlvamlxemg1dHYiLCJpYXQiOjE3ODk5ODgwNDcsImV4cCI6MTc4OTk5MTY0N30.ggQ8-Z0hreNFW9fbtEC_-ZHIJoEedOshHpCRD0DYy2Q",
+  "bearer_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnN0YWxsZWRQbHVnaW5JZCI6MjQxLCJzdWJEb21haW4iOiJnb29nbGUtc2Vjb3BzLTlvamlxemg1dHYiLCJpYXQiOjE3OTAwMTIyNTQsImV4cCI6MTc5MDAxNTg1NH0.7LAbXYRc9nzldGwlpvUJdU3MVcutgA5je34U1gcQvEA",
   "project": "sensor-parsing",
   "location": "asia-southeast1",
   "instance": "c6ad8954-0665-4196-bc84-82295ab186a4"
