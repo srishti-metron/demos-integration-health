@@ -1,7 +1,7 @@
 {
-  "base_url": "https://google-secops-9ojiqzh5tv.staging.logforge.net",
-  "bearer_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnN0YWxsZWRQbHVnaW5JZCI6MjQxLCJzdWJEb21haW4iOiJnb29nbGUtc2Vjb3BzLTlvamlxemg1dHYiLCJpYXQiOjE3OTAwMTIyNTQsImV4cCI6MTc5MDAxNTg1NH0.7LAbXYRc9nzldGwlpvUJdU3MVcutgA5je34U1gcQvEA",
-  "project": "sensor-parsing",
+  "base_url": "https://google-secops-ir3zsk6sjg.staging.logforge.net",
+  "project": "microchip-bypassing",
   "location": "asia-southeast1",
-  "instance": "c6ad8954-0665-4196-bc84-82295ab186a4"
+  "instance": "f3463574-1031-426a-81bb-e8966c3c0b1b",
+  "bearer_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbnN0YWxsZWRQbHVnaW5JZCI6MjQyLCJzdWJEb21haW4iOiJnb29nbGUtc2Vjb3BzLWlyM3pzazZzamciLCJpYXQiOjE3OTA1MzYxMTUsImV4cCI6MTc5MDUzOTcxNX0.ZKeEYx6Qho19h3qw20XdszERjT_GlYvAnG5votI6pSM"
 }

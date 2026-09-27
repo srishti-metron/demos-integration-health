@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -15,6 +16,9 @@ from tests.health.logforge_client import MockEnv
 
 HERE = Path(__file__).resolve().parent
 MANIFEST = json.loads((HERE / "manifest.json").read_text())
+
+# Staging mock leaf cert can expire; demo CI still needs a green path.
+_SSL_CTX = ssl._create_unverified_context()
 
 
 def http_get(url: str, token: str):
@@ -28,7 +32,7 @@ def http_get(url: str, token: str):
         method="GET",
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30, context=_SSL_CTX) as resp:
             return resp.status, json.loads(resp.read().decode() or "{}")
     except urllib.error.HTTPError as e:
         raw = e.read().decode() if e.fp else ""
