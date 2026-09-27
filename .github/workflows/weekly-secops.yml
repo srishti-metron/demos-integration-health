@@ -2,15 +2,6 @@ name: Weekly Google SecOps health
 
 on:
   workflow_dispatch:
-    inputs:
-      simulate_drift:
-        description: "DEMO ONLY — wrong request params (red run for video)"
-        required: false
-        default: "false"
-        type: choice
-        options:
-          - "false"
-          - "true"
   schedule:
     - cron: "0 9 * * 1"
 
@@ -18,16 +9,15 @@ jobs:
   health-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Run Google SecOps connector health
-        env:
-          DEMO_SIMULATE_DRIFT: ${{ inputs.simulate_drift || 'false' }}
-          SIMULATE_DRIFT: ${{ inputs.simulate_drift || 'false' }}
+      - name: Run Google SecOps integration tests
         run: python tests/connectors/test_google_secops.py
 
       - name: Notify Slack on failure
@@ -42,5 +32,5 @@ jobs:
           curl -sS -X POST "$SLACK_WEBHOOK_URL" \
             -H 'Content-type: application/json' \
             --data "{
-              \"text\": \":x: *Weekly Google SecOps health failed*\\nLogForge mock check caught a request-contract mismatch.\\nRepo: ${{ github.repository }}\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+              \"text\": \":x: *Weekly Google SecOps health failed*\\nRepo: ${{ github.repository }}\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
             }"
