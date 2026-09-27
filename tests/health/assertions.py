@@ -33,7 +33,7 @@ def print_param_drift(
     print("=" * 60, file=sys.stderr)
     print(f"ASSERTION FAILED: {title}", file=sys.stderr)
     print("=" * 60, file=sys.stderr)
-    print("Scenario : API request-contract drift", file=sys.stderr)
+    print("Scenario : connector regression (wrong request fields)", file=sys.stderr)
     print(f"Expected : HTTP 200 with params {expected_params}", file=sys.stderr)
     print(f"Sent     : params {sent_params}", file=sys.stderr)
     print(f"Got      : HTTP {status}  {json.dumps(body)}", file=sys.stderr)
@@ -47,7 +47,7 @@ def print_param_drift(
             print(f"  + {p}", file=sys.stderr)
     print("", file=sys.stderr)
     print(
-        "Caught by weekly LogForge mock check — connector still uses old field names.",
+        "Caught by CI against LogForge mock — fix the connector before merge.",
         file=sys.stderr,
     )
     print("=" * 60, file=sys.stderr)

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import ssl
 import urllib.error
 import urllib.parse
@@ -56,29 +55,19 @@ def run_checks(env: MockEnv) -> None:
 
     health = MANIFEST["health"]
     expected_params = health["expectedParams"]
-    simulate_drift = (
-        os.environ.get("DEMO_SIMULATE_DRIFT", os.environ.get("SIMULATE_DRIFT", "false")).lower()
-        == "true"
-    )
 
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=7)
     start_s = start.isoformat().replace("+00:00", "Z")
     end_s = end.isoformat().replace("+00:00", "Z")
 
-    if simulate_drift:
-        print("DEMO_SIMULATE_DRIFT=true → wrong params (marketing demo only)")
-        query = {
-            "timeRange.start": start_s,
-            "timeRange.end": end_s,
-            "maxNumAlertsToReturn": "10",
-        }
-    else:
-        query = {
-            "timeRange.start_time": start_s,
-            "timeRange.end_time": end_s,
-            "maxNumAlertsToReturn": "10",
-        }
+    # Intentional connector regression for Scene 5 (wrong field names).
+    # Revert this branch after filming — main stays on the correct params.
+    query = {
+        "timeRange.start": start_s,
+        "timeRange.end": end_s,
+        "maxNumAlertsToReturn": "10",
+    }
 
     path = health["endpoint"].format(
         project=project, location=location, instance=instance
@@ -89,12 +78,11 @@ def run_checks(env: MockEnv) -> None:
     print(f"HTTP {status}: {json.dumps(body)[:300]}")
 
     if status != 200:
-        if simulate_drift:
-            print_param_drift(
-                title=f"{MANIFEST['name']} weekly health check",
-                expected_params=expected_params,
-                sent_params=list(query.keys()),
-                status=status,
-                body=body,
-            )
+        print_param_drift(
+            title=f"{MANIFEST['name']} integration regression check",
+            expected_params=expected_params,
+            sent_params=list(query.keys()),
+            status=status,
+            body=body,
+        )
         expect_status(status, 200, context=f"{MANIFEST['name']} alerts", body=body)
